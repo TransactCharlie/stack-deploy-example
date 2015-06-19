@@ -230,12 +230,12 @@
                 "HealthCheck": {
                 	"HealthyThreshold": "4",
                 	"Interval": "10",
-                	"Target": "HTTP:5000/",
+                	"Target": "TCP:5000",
                 	"Timeout": "5",
                 	"UnhealthyThreshold": "2"
                 },
                 "ConnectionSettings": { "IdleTimeout": 600 },
-                "Listeners" : [ {"LoadBalancerPort": "80", "InstancePort": "5000", "Protocol": "HTTP" } ]
+                "Listeners" : [ {"LoadBalancerPort": "80", "InstancePort": "5000", "Protocol": "TCP" } ]
             }
         },
         "WebserverLoadBalancerExternalRecord": {
