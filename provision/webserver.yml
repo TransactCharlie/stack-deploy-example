@@ -1,0 +1,7 @@
+---
+
+- name: Webserver installation
+  hosts: webserver
+  sudo: yes
+  roles:
+  - webserver

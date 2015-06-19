@@ -1,0 +1,17 @@
+---
+
+- name: create Webserver Dir
+  file: "path={{ item }} state=directory"
+  with_items:
+  - "/opt/webserver"
+
+- name: deploy webserver.tar.gz
+  unarchive: "src=webserver.tar.gz dest=/opt/webserver/"
+
+- name: Install webserver dependencies
+  pip: requirements=/opt/webserver/requirements.txt
+
+- name: copy supervisor config
+  template: src=webserver.supervisor.conf dest=/etc/supervisor/conf.d/webserver.conf mode=0751
+  notify:
+  - restart_webserver
