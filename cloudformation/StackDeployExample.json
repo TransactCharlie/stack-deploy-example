@@ -139,7 +139,7 @@
                 "GroupDescription": "Secyurity group for webserver layer",
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "SecurityGroupIngress": [
@@ -172,7 +172,7 @@
 				"Tags": [
 					{ "Key": "Name", "Value": "WebserverFleetNode", "PropagateAtLaunch": "true" },
                     { "Key": "Project", "Value": "CloudGraphite", "PropagateAtLaunch": "true" },
-                    { "Key": "Project", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
+                    { "Key": "Purpose", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net", "PropagateAtLaunch": "true" },
                     { "Key": "AnsibleRole", "Value": "webserver", "PropagateAtLaunch": "true" }
 				]
@@ -199,7 +199,7 @@
                 "GroupDescription": "Security Group for Webserver Load Balancer",
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "SecurityGroupIngress": [
@@ -218,7 +218,7 @@
                 "Subnets": { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "Scheme": "internet-facing",
@@ -259,7 +259,7 @@
                 "GroupDescription": "Security Group for JumpBox Load Balancer",
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "SecurityGroupIngress": [
@@ -278,7 +278,7 @@
                 "GroupDescription": "Security Group for jump boxes",
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "VpcId": { "Fn::FindInMap": ["SkyscannerVPC", { "Ref": "AWS::Region" }, "VpcId"] },
@@ -298,7 +298,7 @@
                 "Subnets": { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
-                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Purpose", "Value": "StackDeployExample" },
                     { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
                 ],
                 "Scheme": "internet-facing",
@@ -342,7 +342,7 @@
                 "Tags": [
                     { "Key": "Name", "Value": "JumpboxNode", "PropagateAtLaunch": "true" },
                     { "Key": "Project", "Value": "CloudGraphite", "PropagateAtLaunch": "true" },
-                    { "Key": "Project", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
+                    { "Key": "Purpose", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
                     { "Key": "Contact", "Value": "charie.gildawie@skyscanner.net", "PropagateAtLaunch": "true" },
                     { "Key": "AnsibleRole", "Value": "jumpbox", "PropagateAtLaunch": "true" }
                 ]
