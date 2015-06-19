@@ -1,5 +1,4 @@
 ---
 
 - name: restart_webserver
-  supervisorctl: name=webserver state=restarted
-  supervisorctl_path: /usr/local/bin/
+  supervisorctl: name=webserver state=restarted supervisorctl_path=/usr/local/bin/supervisorctl
