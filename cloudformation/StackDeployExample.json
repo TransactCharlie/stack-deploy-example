@@ -169,6 +169,7 @@
 				"DesiredCapacity": { "Ref": "WebserverFleetSize" },
 				"HealthCheckType": "EC2",
 				"HealthCheckGracePeriod": 300,
+                "LoadBalancerNames" : [ { "Ref" : "WebserverLoadBalancer" } ],
 				"Tags": [
 					{ "Key": "Name", "Value": "WebserverFleetNode", "PropagateAtLaunch": "true" },
                     { "Key": "Project", "Value": "CloudGraphite", "PropagateAtLaunch": "true" },
