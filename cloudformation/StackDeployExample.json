@@ -48,7 +48,7 @@
             "Description": "DNSName for the Jumpbox",
             "Type": "String",
             "Default": "jumpbox.stackdeployexample"
-        },
+        }
 	},
 
 	"Mappings": {
@@ -296,7 +296,6 @@
             "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties" : {
                 "Subnets": { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
-                "LoadBalancerName": "JumpboxLB",
                 "Tags": [
                     { "Key": "Project", "Value": "CloudGraphite" },
                     { "Key": "Project", "Value": "StackDeployExample" },
