@@ -1,0 +1,373 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Simple Example Stack",
+
+	"Parameters": {
+		"KeyName": {
+			"Description": "existing key name",
+			"Type": "String",
+			"Default": "StackDeployExample"
+		},
+
+        "ExternalDNS": {
+            "Default": "sandbox.aws.skyscnr.com",
+            "Description": "External Hostedzone name to add recordSets to",
+            "Type": "String"
+        },
+
+		"WebserverInstanceType": {
+			"Description": "Webserver EC2 InstanceType",
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": [ "t2.micro", "m3.large", "m3.xlarge" ],
+            "ConstraintDescription": "must be a valid EC2 instance type"
+		},
+
+		"WebserverLoadBalancerDNSName": {
+           "Description": "DNSName for the Webserver Loadbalancer",
+            "Type": "String",
+            "Default": "webserver.stackdeployexample"
+        },
+
+		"WebserverFleetSize": {
+			"Description": "No. of Webserver Nodes",
+			"Default": 3,
+			"Type": "Number"
+		},
+
+        "JumpboxInstanceType": {
+            "Description": "EC2 instance type",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [ "t2.micro" ],
+            "ConstraintDescription": "must be a valid EC2 instance type"
+        },
+
+        "JumpboxLoadBalancerDNSName": {
+            "Description": "DNSName for the Jumpbox",
+            "Type": "String",
+            "Default": "jumpbox.stackdeployexample"
+        },
+	},
+
+	"Mappings": {
+
+		"AmazonLinuxAMI": {
+            "us-east-1" :      { "ImageId": "ami-1ecae776" },
+            "us-west-2" :      { "ImageId": "ami-e7527ed7" },
+            "us-west-1" :      { "ImageId": "ami-d114f295" },
+            "eu-west-1" :      { "ImageId": "ami-a10897d6" },
+            "ap-southeast-1" : { "ImageId": "ami-68d8e93a" },
+            "ap-southeast-2" : { "ImageId": "ami-cbf90ecb" },
+            "ap-northeast-1" : { "ImageId": "ami-fd9cecc7" },
+            "sa-east-1" :      { "ImageId": "ami-b52890a8" }
+        },
+
+        "SkyscannerVPC": {
+            "eu-west-1" : {
+                "VpcId": "vpc-a307afc6",
+                "PrivateSubnetIDs": ["subnet-e4991593", "subnet-45e5441c", "subnet-009afe65"],
+                "PublicSubnetIDs":  ["subnet-e3991594", "subnet-43e5441a", "subnet-029afe67"]
+            }
+        }            
+
+    },
+
+    "Resources": {
+
+        "EC2DiscoveryRole" :{
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument":{
+              "Version" : "2012-10-17",
+                 "Statement": [ {
+                    "Effect": "Allow",
+                    "Principal": {
+                       "Service": [ "ec2.amazonaws.com" ]
+                    },
+                    "Action": [ "sts:AssumeRole" ]}]
+          },
+          "Path": "/",
+          "Policies": [
+            {
+              "PolicyName":"ec2-describe-instances",
+              "PolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [
+                      {
+                          "Action": "ec2:Describe*",
+                          "Effect": "Allow",
+                          "Resource": "*"
+                      },
+                      {
+                        "Action": [
+                            "elasticloadbalancing:Describe*"
+                        ],
+                        "Effect": "Allow",
+                        "Resource": [
+                            "*"
+                        ]
+                     },
+                     {
+                        "Action": [
+                            "autoscaling:Describe*"
+                        ],
+                        "Effect": "Allow",
+                        "Resource": [
+                            "*"
+                        ]
+                     }
+                  ]
+              }
+            }]
+          }
+        },
+
+        "Ec2DiscoveryInstanceProfile" : {
+          "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+              "Path": "/",
+              "Roles": [ { "Ref": "EC2DiscoveryRole" } ]
+           }
+        },
+
+        "WebserverSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": { "Fn::FindInMap": ["SkyscannerVPC", { "Ref": "AWS::Region" }, "VpcId"] },
+                "GroupDescription": "Secyurity group for webserver layer",
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "TCP",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "SourceSecurityGroupId": { "Ref": "JumpboxNodeSecurityGroup" }
+                    },
+                    {
+                        "IpProtocol": "TCP",
+                        "FromPort": "5000",
+                        "ToPort": "5000",
+                        "SourceSecurityGroupId": { "Ref": "WebserverLoadBalancerSecurityGroup" }
+                    }
+                ]
+            }
+        },
+		"WebserverFleetScalingGroup": {
+			"Type" : "AWS::AutoScaling::AutoScalingGroup",
+			"Properties" : {
+				"AvailabilityZones" : { "Fn::GetAZs" : ""},
+                "VPCZoneIdentifier" : { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PrivateSubnetIDs" ] },
+				"LaunchConfigurationName" : { "Ref" : "WebserverLaunchConfig" },
+				"MinSize" : 1,
+				"MaxSize" : 99,
+				"DesiredCapacity": { "Ref": "WebserverFleetSize" },
+				"HealthCheckType": "EC2",
+				"HealthCheckGracePeriod": 300,
+				"Tags": [
+					{ "Key": "Name", "Value": "WebserverFleetNode", "PropagateAtLaunch": "true" },
+                    { "Key": "Project", "Value": "CloudGraphite", "PropagateAtLaunch": "true" },
+                    { "Key": "Project", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net", "PropagateAtLaunch": "true" },
+                    { "Key": "AnsibleRole", "Value": "webserver", "PropagateAtLaunch": "true" }
+				]
+			}
+		},
+		"WebserverLaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap" : [ "AmazonLinuxAMI", { "Ref" : "AWS::Region" }, "ImageId" ]},
+				"SecurityGroups": [ { "Ref": "WebserverSecurityGroup" } ],
+				"InstanceType": { "Ref": "WebserverInstanceType" },
+				"KeyName": { "Ref": "KeyName" },
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+					"#! /bin/bash -v\n",
+					"yum update -y\n"
+					]]}
+				}
+			}
+		},
+		"WebserverLoadBalancerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": { "Fn::FindInMap": ["SkyscannerVPC", { "Ref": "AWS::Region" }, "VpcId"] },
+                "GroupDescription": "Security Group for Webserver Load Balancer",
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "TCP",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "WebserverLoadBalancer" : {
+            "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {
+                "Subnets": { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "Scheme": "internet-facing",
+                "CrossZone" : "true",
+                "SecurityGroups": [
+                    { "Fn::GetAtt": [ "WebserverLoadBalancerSecurityGroup", "GroupId"] }
+                ],
+                "HealthCheck": {
+                	"HealthyThreshold": "4",
+                	"Interval": "10",
+                	"Target": "HTTP:5000/",
+                	"Timeout": "5",
+                	"UnhealthyThreshold": "2"
+                },
+                "ConnectionSettings": { "IdleTimeout": 600 },
+                "Listeners" : [ {"LoadBalancerPort": "80", "InstancePort": "5000", "Protocol": "HTTP" } ]
+            }
+        },
+        "WebserverLoadBalancerExternalRecord": {
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Comment": "Webserver load balancer DNS External name",
+                "HostedZoneName": {"Fn::Join": ["", [{"Ref": "ExternalDNS"}, "."] ] },
+                "Name": {"Fn::Join": ["", [{"Ref": "WebserverLoadBalancerDNSName"}, ".", {"Ref": "ExternalDNS"}, "."] ] },
+                "ResourceRecords": [{"Fn::GetAtt": ["WebserverLoadBalancer", "DNSName"] } ],
+                "TTL": "100",
+                "Type": "CNAME"
+            }
+        },
+
+
+
+
+        "JumpboxLoadBalancerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": { "Fn::FindInMap": ["SkyscannerVPC", { "Ref": "AWS::Region" }, "VpcId"] },
+                "GroupDescription": "Security Group for JumpBox Load Balancer",
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "TCP",
+                        "FromPort": "2222",
+                        "ToPort": "2222",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+		"JumpboxNodeSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Security Group for jump boxes",
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "VpcId": { "Fn::FindInMap": ["SkyscannerVPC", { "Ref": "AWS::Region" }, "VpcId"] },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "TCP",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "SourceSecurityGroupId": { "Ref": "JumpboxLoadBalancerSecurityGroup" }
+                    }
+                ]
+            }
+        },
+        "JumpboxLoadBalancer" : {
+            "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {
+                "Subnets": { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
+                "LoadBalancerName": "JumpboxLB",
+                "Tags": [
+                    { "Key": "Project", "Value": "CloudGraphite" },
+                    { "Key": "Project", "Value": "StackDeployExample" },
+                    { "Key": "Contact", "Value": "charlie.gildawie@skyscanner.net" }
+                ],
+                "Scheme": "internet-facing",
+                "CrossZone" : "true",
+                "SecurityGroups": [
+                    { "Fn::GetAtt": [ "JumpboxLoadBalancerSecurityGroup", "GroupId"] }
+                ],
+                "HealthCheck": {
+                    "HealthyThreshold": "4",
+                    "Interval": "10",
+                    "Target": "TCP:22",
+                    "Timeout": "5",
+                    "UnhealthyThreshold": "2"
+                },
+                "Listeners" : [ {"LoadBalancerPort": "2222", "InstancePort": "22", "Protocol": "TCP" } ],
+                "ConnectionSettings": { "IdleTimeout": 3600 }
+            }
+        },
+        "JumpboxLoadBalancerExternalRecord": {
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Comment": "Jumpbox load balancer DNS External name",
+                "HostedZoneName": {"Fn::Join": ["", [{"Ref": "ExternalDNS"}, "."] ] },
+                "Name": {"Fn::Join": ["", [{"Ref": "JumpboxLoadBalancerDNSName"}, ".", {"Ref": "ExternalDNS"}, "."] ] },
+                "ResourceRecords": [{"Fn::GetAtt": ["JumpboxLoadBalancer", "DNSName"] } ],
+                "TTL": "100",
+                "Type": "CNAME"
+            }
+        },
+        "JumpboxNodeScalingGroup": {
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+                "VPCZoneIdentifier" : { "Fn::FindInMap" : [ "SkyscannerVPC", { "Ref": "AWS::Region" }, "PublicSubnetIDs" ] },
+                "LaunchConfigurationName" : { "Ref" : "JumpboxNodeLaunchConfig" },
+                "MinSize" : 1,
+                "MaxSize" : 1,
+                "DesiredCapacity": 1,
+                "HealthCheckType": "EC2",
+                "HealthCheckGracePeriod": 300,
+                "LoadBalancerNames" : [ { "Ref" : "JumpboxLoadBalancer" } ],
+                "Tags": [
+                    { "Key": "Name", "Value": "JumpboxNode", "PropagateAtLaunch": "true" },
+                    { "Key": "Project", "Value": "CloudGraphite", "PropagateAtLaunch": "true" },
+                    { "Key": "Project", "Value": "StackDeployExample", "PropagateAtLaunch": "true" },
+                    { "Key": "Contact", "Value": "charie.gildawie@skyscanner.net", "PropagateAtLaunch": "true" },
+                    { "Key": "AnsibleRole", "Value": "jumpbox", "PropagateAtLaunch": "true" }
+                ]
+            }
+        },
+        "JumpboxNodeLaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "ImageId": { "Fn::FindInMap" : [ "AmazonLinuxAMI", { "Ref" : "AWS::Region" }, "ImageId" ]},
+                "SecurityGroups": [ 
+                    { "Fn::GetAtt": [ "JumpboxNodeSecurityGroup", "GroupId"] }
+                ],
+                "IamInstanceProfile": { "Ref": "Ec2DiscoveryInstanceProfile" },
+                "InstanceType": { "Ref": "JumpboxInstanceType" },
+                "KeyName": { "Ref": "KeyName" },
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+					"#! /bin/bash -v\n",
+					"yum update -y\n",
+
+					"# Install ansible\n",
+					"pip install ansible\n"
+					]]}
+				}
+            }
+        }
+    }
+}
