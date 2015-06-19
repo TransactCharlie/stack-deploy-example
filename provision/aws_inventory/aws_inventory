@@ -1,4 +1,4 @@
-[tag_ansiblerole_webserver]
+[tag_AnsibleRole_webserver]
 
 [webserver:children]
 tag_AnsibleRole_webserver
