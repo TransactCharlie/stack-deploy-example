@@ -1,0 +1,7 @@
+---
+
+- name: Supervisor installation
+  hosts: all
+  sudo: yes
+  roles:
+  - supervisor

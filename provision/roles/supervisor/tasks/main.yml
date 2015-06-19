@@ -1,0 +1,18 @@
+---
+
+- name: create directories
+  file: "path={{ item }} state=directory"
+  with_items:
+  - /etc/supervisor/conf.d
+  - /var/log/supervisor
+
+- name: Install supervisor
+  pip: "name=supervisor state=present version=3.1.3"
+
+- name: copy configuration templates
+  template: "src={{ item.src }} dest={{ item.dest }} mode={{ item.mode | default('644') }}"
+  with_items:
+  - { src: "3.1.3/supervisord.conf", dest: "/etc/supervisord.conf" }
+  - { src: "3.1.3/supervisord.sh", dest: "/etc/init.d/supervisord", mode: "755" }
+  notify:
+  - start_supervisord

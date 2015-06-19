@@ -1,0 +1,4 @@
+---
+
+- name: start_supervisord
+  service: name=supervisord enabled=yes state=restarted
