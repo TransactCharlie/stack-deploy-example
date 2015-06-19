@@ -1,6 +1,6 @@
 ---
 
-- name: create Webserver Dir
+- name: create webserver dir
   file: "path={{ item }} state=directory"
   with_items:
   - "/opt/webserver"

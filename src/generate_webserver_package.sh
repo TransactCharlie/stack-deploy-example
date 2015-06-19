@@ -1,4 +1,4 @@
 #!/bin/bash
-
-tar -zcvf ../provision/roles/webserver/files/webserver.tar.gz webserver/*
+cd webserver
+tar -zcvf ../../provision/roles/webserver/files/webserver.tar.gz *
 
